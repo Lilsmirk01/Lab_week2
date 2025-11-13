@@ -1,27 +1,62 @@
 import streamlit as st
-import random
 
-st.title("🎈 My newasdasdawkhsgkdsd app")
+st.title("🎈 TikTakToe")
 st.write(
     "Let's start building! For help and inspiration, head over to [docs.streamlit.io](https://docs.streamlit.io/)."
 )
 
-st.header("🎯 Number Guessing Game")
+st.header("🎮 Tic Tac Toe (Multiplayer)")
+st.write("Play with a friend — X vs O!")
 
-# Generate a random number and store it in session state so it doesn't reset on each rerun
-if "number" not in st.session_state:
-    st.session_state.number = random.randint(1, 20)
+# --- Initialize the game state ---
+if "board" not in st.session_state:
+    st.session_state.board = [""] * 9
+if "current_player" not in st.session_state:
+    st.session_state.current_player = "X"
+if "winner" not in st.session_state:
+    st.session_state.winner = None
 
-guess = st.number_input("Guess a number between 1 and 20", min_value=1, max_value=20, step=1)
-if st.button("Submit Guess"):
-    if guess == st.session_state.number:
-        st.success("🎉 Correct! You guessed the number!")
-        st.session_state.number = random.randint(1, 20)  # reset game
-    elif guess < st.session_state.number:
-        st.warning("Too low! Try again.")
+# --- Function to check the winner ---
+def check_winner(board):
+    win_patterns = [
+        (0,1,2), (3,4,5), (6,7,8),  # Rows
+        (0,3,6), (1,4,7), (2,5,8),  # Columns
+        (0,4,8), (2,4,6)            # Diagonals
+    ]
+    for a,b,c in win_patterns:
+        if board[a] == board[b] == board[c] and board[a] != "":
+            return board[a]
+    if "" not in board:
+        return "Draw"
+    return None
+
+# --- Function to make a move ---
+def make_move(i):
+    if st.session_state.board[i] == "" and st.session_state.winner is None:
+        st.session_state.board[i] = st.session_state.current_player
+        winner = check_winner(st.session_state.board)
+        if winner:
+            st.session_state.winner = winner
+        else:
+            st.session_state.current_player = "O" if st.session_state.current_player == "X" else "X"
+
+# --- Create the Tic Tac Toe grid ---
+cols = st.columns(3)
+for i in range(9):
+    if cols[i % 3].button(st.session_state.board[i] or " ", key=i):
+        make_move(i)
+
+# --- Display game status ---
+if st.session_state.winner:
+    if st.session_state.winner == "Draw":
+        st.info("🤝 It's a draw!")
     else:
-        st.warning("Too high! Try again.")
+        st.success(f"🎉 Player {st.session_state.winner} wins!")
+else:
+    st.write(f"👉 It's **{st.session_state.current_player}**'s turn")
 
-if st.button("Reset Game"):
-    st.session_state.number = random.randint(1, 20)
-    st.info("🔄 Game reset! Guess the new number.")
+# --- Restart button ---
+if st.button("🔄 Restart Game"):
+    st.session_state.board = [""] * 9
+    st.session_state.current_player = "X"
+    st.session_state.winner = None
