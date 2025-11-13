@@ -1,62 +1,98 @@
 import streamlit as st
+import random
 
-st.title("🎈 TikTakToe")
+st.title("🎈 app")
 st.write(
     "Let's start building! For help and inspiration, head over to [docs.streamlit.io](https://docs.streamlit.io/)."
 )
 
-st.header("🎮 Tic Tac Toe (Multiplayer)")
-st.write("Play with a friend — X vs O!")
+# ==============================
+# 🐍 Simple Snake Game
+# ==============================
 
-# --- Initialize the game state ---
-if "board" not in st.session_state:
-    st.session_state.board = [""] * 9
-if "current_player" not in st.session_state:
-    st.session_state.current_player = "X"
-if "winner" not in st.session_state:
-    st.session_state.winner = None
+st.header("🐍 Snake Game")
+st.write("Use the arrow buttons to move and eat the apple!")
 
-# --- Function to check the winner ---
-def check_winner(board):
-    win_patterns = [
-        (0,1,2), (3,4,5), (6,7,8),  # Rows
-        (0,3,6), (1,4,7), (2,5,8),  # Columns
-        (0,4,8), (2,4,6)            # Diagonals
-    ]
-    for a,b,c in win_patterns:
-        if board[a] == board[b] == board[c] and board[a] != "":
-            return board[a]
-    if "" not in board:
-        return "Draw"
-    return None
+GRID_SIZE = 10
 
-# --- Function to make a move ---
-def make_move(i):
-    if st.session_state.board[i] == "" and st.session_state.winner is None:
-        st.session_state.board[i] = st.session_state.current_player
-        winner = check_winner(st.session_state.board)
-        if winner:
-            st.session_state.winner = winner
-        else:
-            st.session_state.current_player = "O" if st.session_state.current_player == "X" else "X"
+# --- Initialize game state ---
+if "snake" not in st.session_state:
+    st.session_state.snake = [(5, 5)]
+if "food" not in st.session_state:
+    st.session_state.food = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
+if "direction" not in st.session_state:
+    st.session_state.direction = "RIGHT"
+if "game_over" not in st.session_state:
+    st.session_state.game_over = False
 
-# --- Create the Tic Tac Toe grid ---
-cols = st.columns(3)
-for i in range(9):
-    if cols[i % 3].button(st.session_state.board[i] or " ", key=i):
-        make_move(i)
+# --- Movement controls ---
+col1, col2, col3 = st.columns(3)
+with col1:
+    if st.button("⬆️ Up"):
+        st.session_state.direction = "UP"
+with col2:
+    if st.button("⬅️ Left"):
+        st.session_state.direction = "LEFT"
+    if st.button("➡️ Right"):
+        st.session_state.direction = "RIGHT"
+with col3:
+    if st.button("⬇️ Down"):
+        st.session_state.direction = "DOWN"
 
-# --- Display game status ---
-if st.session_state.winner:
-    if st.session_state.winner == "Draw":
-        st.info("🤝 It's a draw!")
+# --- Game logic ---
+if not st.session_state.game_over:
+    head_x, head_y = st.session_state.snake[0]
+
+    if st.session_state.direction == "UP":
+        head_y -= 1
+    elif st.session_state.direction == "DOWN":
+        head_y += 1
+    elif st.session_state.direction == "LEFT":
+        head_x -= 1
+    elif st.session_state.direction == "RIGHT":
+        head_x += 1
+
+    new_head = (head_x, head_y)
+
+    # Check collisions
+    if (
+        head_x < 0 or head_x >= GRID_SIZE or
+        head_y < 0 or head_y >= GRID_SIZE or
+        new_head in st.session_state.snake
+    ):
+        st.session_state.game_over = True
     else:
-        st.success(f"🎉 Player {st.session_state.winner} wins!")
-else:
-    st.write(f"👉 It's **{st.session_state.current_player}**'s turn")
+        st.session_state.snake.insert(0, new_head)
+        if new_head == st.session_state.food:
+            st.session_state.food = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
+        else:
+            st.session_state.snake.pop()
 
-# --- Restart button ---
+# --- Draw grid ---
+def draw_grid():
+    grid = ""
+    for y in range(GRID_SIZE):
+        for x in range(GRID_SIZE):
+            if (x, y) == st.session_state.food:
+                grid += "🍎 "
+            elif (x, y) in st.session_state.snake:
+                if (x, y) == st.session_state.snake[0]:
+                    grid += "🟩 "  # Snake head
+                else:
+                    grid += "🟢 "  # Snake body
+            else:
+                grid += "⬜ "
+        grid += "\n"
+    return grid
+
+st.text(draw_grid())
+
+# --- Display status ---
+if st.session_state.game_over:
+    st.error("💀 Game Over! You hit the wall or yourself!")
+
 if st.button("🔄 Restart Game"):
-    st.session_state.board = [""] * 9
-    st.session_state.current_player = "X"
-    st.session_state.winner = None
+    st.session_state.snake = [(5, 5)]
+    st.session_state.food = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
+    st.session_state.direction = "RIGHT"
+    st.session_state.game_over = False
